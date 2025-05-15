@@ -18,3 +18,17 @@
 
 ```bash
 pip install logos-framework
+
+
+```python
+from prompt_framework.orchestrator import PipelineBuilder, Orchestrator
+from prompt_framework.client import OpenAIClient
+
+builder = PipelineBuilder("config.yaml")
+modules = builder.load_modules()
+client = OpenAIClient(api_key="YOUR_KEY")
+orc = Orchestrator(modules=modules, client=client)
+
+results = orc.execute("Complex problem....…")
+print(results["explanation"])
+```
