@@ -12,17 +12,17 @@ def main():
     parser.add_argument(
         "--config",
         default="config.yaml",
-        help="Path to the pipeline configuration file"
+        help="Path to pipeline configuration file"
     )
     parser.add_argument(
         "--question",
         required=True,
-        help="The question to process through the LOGOS pipeline"
+        help="Question to process through the pipeline"
     )
     parser.add_argument(
         "--api-key",
         required=True,
-        help="API key for the OpenAI service"
+        help="OpenAI API key"
     )
     parser.add_argument(
         "--model",
@@ -36,13 +36,12 @@ def main():
     )
     args = parser.parse_args()
 
-    # build and run the pipeline
     builder = PipelineBuilder(args.config)
     modules = builder.load_modules()
     client = OpenAIClient(api_key=args.api_key, model=args.model)
     orchestrator = Orchestrator(
         modules=modules,
-        llm_client=client,
+        client=client,
         log_level=getattr(logging, args.log_level.upper())
     )
 
