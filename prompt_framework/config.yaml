@@ -1,0 +1,7 @@
+pipeline:
+  - prompt_framework.modules.role.RoleModule
+  - prompt_framework.modules.task.TaskModule
+  - prompt_framework.modules.abstraction.AbstractionModule
+  - prompt_framework.modules.formalization.FormalizationModule
+  - prompt_framework.modules.explanation.ExplanationModule
+  - prompt_framework.modules.answer.AnswerModule
