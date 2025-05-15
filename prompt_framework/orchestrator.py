@@ -10,61 +10,57 @@ from prompt_framework.logger import setup_logger
 
 class PipelineBuilder:
     """
-    Reads config.yaml to determine which core modules to load,
-    and also discovers any external plugins via entry-points.
+    Builds the list of modules from config.yaml and any plugins.
     """
 
     def __init__(self, config_path: str):
-        self.cfg = load_config(config_path)
-        self.module_paths = get_pipeline(self.cfg)
+        self.config = load_config(config_path)
+        self.module_paths = get_pipeline(self.config)
         self.registry = discover_modules()
 
     def load_modules(self) -> List[LogosModule]:
         """
-        Dynamically import and instantiate each module listed in config.yaml,
-        then append any discovered plugins.
+        Import and instantiate each module in the configured pipeline,
+        then append discovered plugin modules.
         """
-        instances: List[LogosModule] = []
+        modules: List[LogosModule] = []
         for path in self.module_paths:
-            pkg, cls = path.rsplit(".", 1)
-            module = importlib.import_module(pkg)
-            ModuleClass = getattr(module, cls)
-            instances.append(ModuleClass())
-        # add external plugins, if any
-        for ModuleClass in self.registry.values():
-            instances.append(ModuleClass())
-        return instances
+            pkg_path, cls_name = path.rsplit(".", 1)
+            mod = importlib.import_module(pkg_path)
+            cls = getattr(mod, cls_name)
+            modules.append(cls())
+        # add plugins
+        for cls in self.registry.values():
+            modules.append(cls())
+        return modules
 
 class Orchestrator:
     """
-    Executes each module in sequence, sending its prompt to the LLM client
-    and collecting the responses.
+    Executes the pipeline: for each module, render its prompt
+    and call the LLM client.
     """
 
     def __init__(
         self,
         modules: List[LogosModule],
-        llm_client: LLMClient,
+        client: LLMClient,
         log_level: int = logging.INFO,
     ):
         self.modules = modules
-        self.client = llm_client
+        self.client = client
         self.logger = setup_logger(__name__, level=log_level)
 
     def execute(self, question: str) -> Dict[str, str]:
         """
-        Run the pipeline on the given question.
-        Returns a mapping from module.name -> LLM response text.
+        Run each module in sequence on the question.
+        Returns a dict mapping module.name -> response text.
         """
         context: Dict[str, Any] = {}
         outputs: Dict[str, str] = {}
-
         for mod in self.modules:
             prompt = mod.render(question, context)
-            self.logger.info(f"Running module: {mod.name}")
-            # always call the LLM; no caching
+            self.logger.info(f"Executing module: {mod.name}")
             response = self.client.call(prompt)
             outputs[mod.name] = response
-            # optional: parse response to update context for downstream modules
-
+            # optional: update context here for subsequent modules
         return outputs
